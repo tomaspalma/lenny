@@ -1,0 +1,4 @@
+# Coisas para fazer para aumentar a funcionalidade, mas que foram temporariamente ignoradas por prioridades
+
+- Conseguir mexer num ficheiro de configuração numa diretoria diferente da diretoria da aplicação (~/.config/lenny/config.txt, por exemplo)
+- 
