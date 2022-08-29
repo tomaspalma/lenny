@@ -22,3 +22,11 @@ pub fn config_file_opener(file: &str) -> (File, bool) {
 
     (file_handler, created_config_file)
 }
+
+pub fn create_dir() {
+     
+}
+
+pub fn create_file() {
+     
+}

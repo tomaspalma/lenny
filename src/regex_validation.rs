@@ -3,7 +3,7 @@ use lazy_static::lazy_static;
 
 pub fn is_config_name(candidate: &str) -> bool {
     lazy_static! {
-         static ref CURRENT_REGEX: Regex = Regex::new(r"^\[[a-zA-Z]{1,}\]$").unwrap();
+         static ref CURRENT_REGEX: Regex = Regex::new(r"^\s*\[[a-zA-Z]{1,}\]\s*$").unwrap();
     }
 
     CURRENT_REGEX.is_match(candidate)
