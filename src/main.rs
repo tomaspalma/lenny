@@ -73,6 +73,8 @@ fn main() -> () {
     // Flags and other info of the process of reading the file
     let mut parser_config_state: ConfigParserState = ConfigParserState::SearchingForConfigBlock;
     let mut current_line_number: i32 = 0;
+
+    let mut global_folder_parent: String = current_user_args.project_name.clone();
     
     while line_reader.read_line(&mut current_line).unwrap() != 0 {
         
@@ -85,30 +87,47 @@ fn main() -> () {
                     parser_config_state = ConfigParserState::ParsingConfigBlock; 
                 }
             },
+
             ConfigParserState::ParsingConfigBlock => {
                 if regex_validation::is_create_file_line(&current_trimmed_line) {
+                    let part_of_create_file_command_args: &str = &current_trimmed_line[12..];
+                    let args: Vec<&str> = part_of_create_file_command_args.split(",").collect(); let args_len = args.len();
+                    let mut create_file_args: &str = ""; let mut trimmed_file_args: &str = "";
 
+                    for i in 0..args_len {
+                        create_file_args = args[i];
+                        trimmed_file_args = create_file_args.trim();
+
+                        if i == args_len - 1 {
+                             trimmed_file_args = &trimmed_file_args[..trimmed_file_args.len() - 1];
+                        }
+
+                        global_folder_parent.push('/'); global_folder_parent.push_str(trimmed_file_args);
+                        fs_handling::create_file(&global_folder_parent);
+
+                        global_folder_parent = current_user_args.project_name.clone();
+                    }
                 }
                 else if regex_validation::is_create_folder_line(&current_trimmed_line) {
-                    let current_command_args: &str = &current_trimmed_line[14..];
-                    let v: Vec<&str> = current_command_args.split(",").collect();
-                    let (mut create_folder_args, mut path_to_create): (&str, String) = ("", current_user_args.project_name.clone());
+                    let part_of_create_folder_command_args: &str = &current_trimmed_line[14..];
+                    let args: Vec<&str> = part_of_create_folder_command_args.split(",").collect(); let args_len = args.len();
+                    let mut create_folder_args: &str= ""; let mut trimmed_folder_args: &str = ""; 
                    
-                    for i in 0..v.len() {
-                        create_folder_args = v[i];
-                        let mut trimmed_folder_args: &str = create_folder_args.trim();
+                    for i in 0..args_len {
+                        create_folder_args = args[i];
+                        trimmed_folder_args = create_folder_args.trim();
                         
-                        if i == v.len() - 1 {
+                        if i == args_len - 1 {
                             trimmed_folder_args = &trimmed_folder_args[..trimmed_folder_args.len() - 1];
                         }
                         
-                        path_to_create.push('/'); path_to_create.push_str(trimmed_folder_args);
-                        fs_handling::create_folder(&path_to_create);
+                        global_folder_parent.push('/'); global_folder_parent.push_str(trimmed_folder_args);
+                        fs_handling::create_folder(&global_folder_parent);
 
-                        path_to_create.clear(); path_to_create = current_user_args.project_name.clone();
+                        global_folder_parent = current_user_args.project_name.clone();
                     }
-                }
-                else if regex_validation::is_documentation_specifier(&current_trimmed_line) {
+
+                } else if regex_validation::is_documentation_specifier(&current_trimmed_line) {
                     
                 } else if regex_validation::is_comment(&current_trimmed_line) {
                     continue; 

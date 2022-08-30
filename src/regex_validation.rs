@@ -35,7 +35,7 @@ pub fn is_create_folder_line(candidate: &str) -> bool {
 
 pub fn is_create_file_line(candidate: &str) -> bool { 
      lazy_static! {
-          static ref CURRENT_REGEX: Regex = Regex::new(r"^$").unwrap();
+          static ref CURRENT_REGEX: Regex = Regex::new(r"^\s*CreateFiles\(([a-zA-Z]{1,}/)*([a-zA-Z]{1,}.[a-z]{1,})\)\s*$").unwrap();
      }
 
      CURRENT_REGEX.is_match(candidate)
