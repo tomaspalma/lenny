@@ -6,11 +6,7 @@ use std::io::BufRead;
 use std::io::BufReader;
 use std::fs::File;
 
-#[cfg(target_family = "unix")]
-const CONFIG_FILE: &str = "config.txt";
-
-#[cfg(target_family = "windows")]
-const CONFIG_FILE: &str = "não sei ainda";
+const CONFIG_FILE_NAME: &str = "lenny/";
 
 #[cfg(target_family = "unix")]
 fn initialize_git() -> () {
@@ -46,8 +42,22 @@ enum ConfigParserState {
 }
 
 fn main() -> () {
-    let (config_file_handler, created_config_file) : (File, bool) = fs_handling::config_file_opener(CONFIG_FILE);
+    let mut config_file_full_dir: String = String::new();
+
+    // Define parent home directory in config file location
+    if cfg!(unix) {
+        match std::env::var_os("HOME") {
+             Some(value) => config_file_full_dir = format!("{}{}{}", value.into_string().unwrap(), String::from("/.config/"), CONFIG_FILE_NAME),
+             None => panic!("Environment variable $HOME is not set. Please set it correctly."),
+        }
+    }
+
+    // See if the configuration file directory is already created
+    fs_handling::create_folder(&config_file_full_dir);
+    config_file_full_dir.push_str(&"config.txt");
     
+    let (config_file_handler, created_config_file) : (File, bool) = fs_handling::config_file_opener(&config_file_full_dir);
+   
     let current_user_args = UserCLIArgsFormat::parse(); 
     
     // Initialize git repository (default )
@@ -59,7 +69,7 @@ fn main() -> () {
     // NOTE: In the future, the program should create the default configuration file and not just
     // an empty one
     if created_config_file {
-        println!("No configuration file was detected, so we created a new one in {}.\nHowever, the file is empty and so you have to write your configurations. In the meantime, the program cannot execute because it does not know what to do.", CONFIG_FILE); 
+        println!("No configuration file was detected, so we created a new one in {}.\nHowever, the file is empty and so you have to write your configurations. In the meantime, the program cannot execute because it does not know what to do.", config_file_full_dir); 
         return;
     }
 
@@ -79,7 +89,7 @@ fn main() -> () {
     while line_reader.read_line(&mut current_line).unwrap() != 0 {
         
         current_line_number += 1;
-        let current_trimmed_line: &str = current_line.trim(); 
+        let current_trimmed_line: &str = current_line.trim();
         
         match parser_config_state {
             ConfigParserState::SearchingForConfigBlock => {
@@ -135,7 +145,7 @@ fn main() -> () {
                 else if regex_validation::is_config_name(&current_trimmed_line) {
                      break;
                 } else {
-                     println!("You have a problem in line {} with content: {} in the configuration file located at {}", current_line_number, current_line, CONFIG_FILE);
+                     println!("You have a problem in line {} with content: {} in the configuration file located at {}", current_line_number, current_line, config_file_full_dir);
                      return;
                 }
                 

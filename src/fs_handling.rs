@@ -12,8 +12,8 @@ pub fn config_file_opener(file: &str) -> (File, bool) {
                     panic!("Error creating file: { }", error);
                }
             });
-            created_config_file = true;
 
+            created_config_file = true;
             return file_creation_handler;
         } else {
             panic!("Error opening file: { }", error);
