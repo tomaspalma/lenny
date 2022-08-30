@@ -30,7 +30,7 @@ pub fn create_folder(folder_path: &String) -> () {
     });     
 }
 
-pub fn create_file(file_path: &String) -> () {
+pub fn create_empty_file(file_path: &String) -> () {
     //println!("Creating file { } ...", file_path); 
     File::create(file_path).unwrap();
 }

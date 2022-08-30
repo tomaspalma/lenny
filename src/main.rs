@@ -43,6 +43,9 @@ enum ConfigParserState {
 }
 
 fn main() -> () {
+    
+    let available_commands: Vec<&str> = vec!["CreateFiles", "CreateFolders", "Documentation"];
+
     let mut config_file_full_dir: String = String::new();
 
     // Define parent home directory in config file location
@@ -100,7 +103,7 @@ fn main() -> () {
                 }
             },
             ConfigParserState::ParsingConfigBlock => {
-                if regex_validation::is_create_file_line(&current_trimmed_line) {
+                if regex_validation::is_create_empty_file_line(&current_trimmed_line) {
                     let part_of_create_file_command_args: &str = &current_trimmed_line[12..];
                     let args: Vec<&str> = part_of_create_file_command_args.split(",").collect(); let args_len = args.len();
                     let mut create_file_args: &str = ""; let mut trimmed_file_args: &str = "";
@@ -114,7 +117,7 @@ fn main() -> () {
                         }
 
                         global_folder_parent.push('/'); global_folder_parent.push_str(trimmed_file_args);
-                        fs_handling::create_file(&global_folder_parent);
+                        fs_handling::create_empty_file(&global_folder_parent);
 
                         global_folder_parent = current_user_args.project_name.clone();
                     }
