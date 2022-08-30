@@ -36,6 +36,7 @@ struct UserCLIArgsFormat {
     git_repository_link: Option<String>
 }
 
+#[derive(Debug)]
 enum ConfigParserState {
     SearchingForConfigBlock,
     ParsingConfigBlock,
@@ -82,6 +83,7 @@ fn main() -> () {
     
     // Flags and other info of the process of reading the file
     let mut parser_config_state: ConfigParserState = ConfigParserState::SearchingForConfigBlock;
+    let mut found_documentation_config: bool = false;
     let mut current_line_number: i32 = 0;
 
     let mut global_folder_parent: String = current_user_args.project_name.clone();
@@ -90,7 +92,7 @@ fn main() -> () {
         
         current_line_number += 1;
         let current_trimmed_line: &str = current_line.trim();
-        
+
         match parser_config_state {
             ConfigParserState::SearchingForConfigBlock => {
                 if regex_validation::is_config_name(&current_line) && &current_line[1..current_user_args.config_name.len() + 1] == current_user_args.config_name {
@@ -137,7 +139,7 @@ fn main() -> () {
                     }
 
                 } else if regex_validation::is_documentation_specifier(&current_trimmed_line) {
-                    
+                    found_documentation_config = true; 
                 } else if regex_validation::is_comment(&current_trimmed_line) {
                     current_line.clear();
                     continue;
@@ -153,6 +155,11 @@ fn main() -> () {
         }
 
         current_line.clear();
-    } 
+    }
 
+    if let ConfigParserState::SearchingForConfigBlock = parser_config_state {
+         println!("The configuration name you specified in the program parameters was not found in the file. Please, check for spelling mistakes or other mistakes.");
+    } else if current_user_args.generate_documentation && !found_documentation_config {
+         println!("In the program parameters you specified you wanted to use a programming documentation engine. However, in the configuration file in the block of the config you specified, there is no definition of the documentation engine. Add this to the config file: Documentation([name_of_the_engine])");
+    }
 }
