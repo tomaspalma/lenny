@@ -11,7 +11,7 @@ pub fn is_config_name(candidate: &str) -> bool {
 
 pub fn is_comment(candidate: &str) -> bool {
      lazy_static! {
-          static ref CURRENT_REGEX: Regex = Regex::new(r"^\#.*$").unwrap();
+          static ref CURRENT_REGEX: Regex = Regex::new(r"^(\#.*)|(//.*)$").unwrap();
      }
 
      CURRENT_REGEX.is_match(candidate)
