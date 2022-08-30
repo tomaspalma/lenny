@@ -24,13 +24,13 @@ pub fn config_file_opener(file: &str) -> (File, bool) {
 }
 
 pub fn create_folder(folder_path: &String) -> () { 
-    println!("Creating directory { } ...", folder_path);
+    //println!("Creating directory { } ...", folder_path);
     std::fs::create_dir_all(folder_path).unwrap_or_else(|_| {
         println!("Couldn't create directory {}. It may already exist or we just don't have sufficient permissions. You should check if the folder was already created.''", folder_path);
     });     
 }
 
 pub fn create_file(file_path: &String) -> () {
-    println!("Creating file { } ...", file_path); 
+    //println!("Creating file { } ...", file_path); 
     File::create(file_path).unwrap();
 }

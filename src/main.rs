@@ -87,7 +87,6 @@ fn main() -> () {
                     parser_config_state = ConfigParserState::ParsingConfigBlock; 
                 }
             },
-
             ConfigParserState::ParsingConfigBlock => {
                 if regex_validation::is_create_file_line(&current_trimmed_line) {
                     let part_of_create_file_command_args: &str = &current_trimmed_line[12..];
@@ -107,8 +106,8 @@ fn main() -> () {
 
                         global_folder_parent = current_user_args.project_name.clone();
                     }
-                }
-                else if regex_validation::is_create_folder_line(&current_trimmed_line) {
+
+                } else if regex_validation::is_create_folder_line(&current_trimmed_line) {
                     let part_of_create_folder_command_args: &str = &current_trimmed_line[14..];
                     let args: Vec<&str> = part_of_create_folder_command_args.split(",").collect(); let args_len = args.len();
                     let mut create_folder_args: &str= ""; let mut trimmed_folder_args: &str = ""; 
@@ -130,7 +129,8 @@ fn main() -> () {
                 } else if regex_validation::is_documentation_specifier(&current_trimmed_line) {
                     
                 } else if regex_validation::is_comment(&current_trimmed_line) {
-                    continue; 
+                    current_line.clear();
+                    continue;
                 }
                 else if regex_validation::is_config_name(&current_trimmed_line) {
                      break;
