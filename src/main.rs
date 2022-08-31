@@ -187,7 +187,6 @@ fn main() -> () {
                             if character == '(' {
                                 brackets_stack.push(character);
                             } else if character == ')' {
-                                print!("{}", current_line);
                                 brackets_stack.pop();
                             }
                             text_to_write.push(character);
