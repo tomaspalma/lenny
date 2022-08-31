@@ -178,7 +178,7 @@ fn main() -> () {
                     current_line.clear();
 
                     while !brackets_stack.is_empty() {
-                         if line_reader.read_line(&mut current_line).unwrap() == 0 {
+                        if line_reader.read_line(&mut current_line).unwrap() == 0 {
                             print!("Command CreateNonEmptyFiles' parentheses are not correctly closed.");
                             return;
                          }
@@ -189,12 +189,17 @@ fn main() -> () {
                             } else if character == ')' {
                                 brackets_stack.pop();
                             }
-                            text_to_write.push(character);
+                            
+                            if !brackets_stack.is_empty() {
+                                 text_to_write.push(character);
+                            }
                         }
                         
                         current_line.clear();
                     }
-
+                    
+                    // Removing the last ) of the command arg
+                    text_to_write.pop();
                     fs_handling::create_non_empty_file(&file_to_write_path, &text_to_write);
 
                 } else if regex_validation::is_documentation_specifier(&current_trimmed_line) {
