@@ -29,6 +29,7 @@ struct UserCLIArgsFormat {
     config_name: String,
     
     /// Name of the main folder of the project
+    #[clap(short='f', long="mainfoldername", value_parser)]
     project_name: String,
     
     /// Links with already created repository
@@ -150,6 +151,7 @@ fn main() -> () {
                 else if regex_validation::is_config_name(&current_trimmed_line) {
                      break;
                 } else {
+                    // Try to tell the user specifically where the error is at
                      println!("You have a problem in line {} with content: {} in the configuration file located at {}", current_line_number, current_line, config_file_full_dir);
                      return;
                 }
@@ -164,5 +166,7 @@ fn main() -> () {
          println!("The configuration name you specified in the program parameters was not found in the file. Please, check for spelling mistakes or other mistakes.");
     } else if current_user_args.generate_documentation && !found_documentation_config {
          println!("In the program parameters you specified you wanted to use a programming documentation engine. However, in the configuration file in the block of the config you specified, there is no definition of the documentation engine. Add this to the config file: Documentation([name_of_the_engine])");
+    } else {
+         println!("Folder structure successfully created.");
     }
 }
