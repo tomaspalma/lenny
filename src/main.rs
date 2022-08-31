@@ -1,5 +1,5 @@
-mod fs_handling;
 mod regex_validation;
+mod fs_handling;
 
 use clap::Parser;
 use std::path::Path;
@@ -154,7 +154,7 @@ fn main() -> () {
                     let mut brackets_stack: Vec<char> = vec!['('];
 
                     let first_line_args: Vec<&str> = part_of_write_to_file_args.splitn(2, ",").collect();
-                    let (file_to_write_path, first_part_of_text) : (String, &str) = (first_line_args.get(0).unwrap().to_string(), first_line_args.get(1).unwrap());
+                    let (file_to_write_path, first_part_of_text) : (String, &str) = (format!("{}/{}",current_user_args.project_name, first_line_args.get(0).unwrap().to_string()), first_line_args.get(1).unwrap());
                   
                     let mut text_to_write: String = String::new();
                     
@@ -175,8 +175,25 @@ fn main() -> () {
                         }
                     }
 
+                    current_line.clear();
+
                     while !brackets_stack.is_empty() {
-                        break; 
+                         if line_reader.read_line(&mut current_line).unwrap() == 0 {
+                            print!("Command CreateNonEmptyFiles' parentheses are not correctly closed.");
+                            return;
+                         }
+                        
+                        for character in current_line.chars() {
+                            if character == '(' {
+                                brackets_stack.push(character);
+                            } else if character == ')' {
+                                print!("{}", current_line);
+                                brackets_stack.pop();
+                            }
+                            text_to_write.push(character);
+                        }
+                        
+                        current_line.clear();
                     }
 
                     fs_handling::create_non_empty_file(&file_to_write_path, &text_to_write);

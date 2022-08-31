@@ -3,12 +3,12 @@ use std::{fs::File, io::Write};
 pub fn config_file_opener(file: &str) -> (File, bool) {
     let mut created_config_file = false;
     
-    let file_handler = File::options().open(file).unwrap_or_else(|error| {
+    let file_handler = File::open(file).unwrap_or_else(|error| {
         if error.kind() == std::io::ErrorKind::NotFound {
             let file_creation_handler = File::create(file).unwrap();
 
             created_config_file = true;
-            return file_creation_handler;
+            file_creation_handler
         } else {
             panic!("Error opening file: { }", error);
         }
