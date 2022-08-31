@@ -1,5 +1,5 @@
 [package]
-name = "project_struct_generator"
+name = "lenny"
 version = "0.1.0"
 edition = "2021"
 

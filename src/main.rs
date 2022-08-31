@@ -2,6 +2,7 @@ mod fs_handling;
 mod regex_validation;
 
 use clap::Parser;
+use std::path::Path;
 use std::io::BufRead;
 use std::io::BufReader;
 use std::fs::File;
@@ -40,12 +41,13 @@ struct UserCLIArgsFormat {
 #[derive(Debug)]
 enum ConfigParserState {
     SearchingForConfigBlock,
-    ParsingConfigBlock,
+    ParsingConfigFuncs,
 }
 
 fn main() -> () {
     
-    let available_commands: Vec<&str> = vec!["CreateFiles", "CreateFolders", "Documentation"];
+    let available_commands: Vec<&str> = vec!["CreateEmptyFiles", "CreateFolders", "CreateNonEmptyFiles"];
+    let (create_files_command_len, create_folders_command_len, write_to_file_command_len) : (usize, usize, usize) = (available_commands[0].len(), available_commands[1].len(), available_commands[2].len());
 
     let mut config_file_full_dir: String = String::new();
 
@@ -98,33 +100,18 @@ fn main() -> () {
         let current_trimmed_line: &str = current_line.trim();
 
         match parser_config_state {
+
             ConfigParserState::SearchingForConfigBlock => {
                 if regex_validation::is_config_name(&current_line) && &current_line[1..current_user_args.config_name.len() + 1] == current_user_args.config_name {
-                    parser_config_state = ConfigParserState::ParsingConfigBlock; 
+                    parser_config_state = ConfigParserState::ParsingConfigFuncs; 
                 }
             },
-            ConfigParserState::ParsingConfigBlock => {
-                if regex_validation::is_create_empty_file_line(&current_trimmed_line) {
-                    let part_of_create_file_command_args: &str = &current_trimmed_line[12..];
-                    let args: Vec<&str> = part_of_create_file_command_args.split(",").collect(); let args_len = args.len();
-                    let mut create_file_args: &str = ""; let mut trimmed_file_args: &str = "";
 
-                    for i in 0..args_len {
-                        create_file_args = args[i];
-                        trimmed_file_args = create_file_args.trim();
+            ConfigParserState::ParsingConfigFuncs => {
+                
+                if regex_validation::is_create_folder_line(&current_trimmed_line) {
 
-                        if i == args_len - 1 {
-                             trimmed_file_args = &trimmed_file_args[..trimmed_file_args.len() - 1];
-                        }
-
-                        global_folder_parent.push('/'); global_folder_parent.push_str(trimmed_file_args);
-                        fs_handling::create_empty_file(&global_folder_parent);
-
-                        global_folder_parent = current_user_args.project_name.clone();
-                    }
-
-                } else if regex_validation::is_create_folder_line(&current_trimmed_line) {
-                    let part_of_create_folder_command_args: &str = &current_trimmed_line[14..];
+                    let part_of_create_folder_command_args: &str = &current_trimmed_line[create_folders_command_len+1..];
                     let args: Vec<&str> = part_of_create_folder_command_args.split(",").collect(); let args_len = args.len();
                     let mut create_folder_args: &str= ""; let mut trimmed_folder_args: &str = ""; 
                    
@@ -142,9 +129,61 @@ fn main() -> () {
                         global_folder_parent = current_user_args.project_name.clone();
                     }
 
+                } else if regex_validation::is_create_empty_file_line(&current_trimmed_line) {
+
+                    let part_of_create_file_args: &str = &current_trimmed_line[create_files_command_len+1..];
+                    let args: Vec<&str> = part_of_create_file_args.split(",").collect(); let args_len = args.len();
+                    let mut create_file_args: &str = ""; let mut trimmed_file_args: &str = "";
+
+                    for i in 0..args_len {
+                        create_file_args = args[i];
+                        trimmed_file_args = create_file_args.trim();
+
+                        if i == args_len - 1 {
+                             trimmed_file_args = &trimmed_file_args[..trimmed_file_args.len() - 1];
+                        }
+
+                        global_folder_parent.push('/'); global_folder_parent.push_str(trimmed_file_args);
+                        fs_handling::create_empty_file(&global_folder_parent);
+
+                        global_folder_parent = current_user_args.project_name.clone();
+                    }
+
+                } else if regex_validation::is_write_to_file_line(&current_trimmed_line) {
+                    let part_of_write_to_file_args: &str = &current_trimmed_line[write_to_file_command_len+1..]; 
+                    let mut brackets_stack: Vec<char> = vec!['('];
+
+                    let first_line_args: Vec<&str> = part_of_write_to_file_args.splitn(2, ",").collect();
+                    let (file_to_write_path, first_part_of_text) : (String, &str) = (first_line_args.get(0).unwrap().to_string(), first_line_args.get(1).unwrap());
+                  
+                    let mut text_to_write: String = String::new();
+                    
+                    // Verify if the file exists
+                    /*if !file_to_write_path.exists() {
+                         println!("The file you specified in line {} does not exist. Nothing below that line was executed.", current_line_number);
+                         return;
+                    }*/
+
+                    // Firstly, we write to the string we're going to write to the file the chars
+                    // from the first line of the config.txt arg 
+                    for character in first_part_of_text.chars() {
+                        text_to_write.push(character);
+                        if character == '(' {
+                             brackets_stack.push(character);
+                        } else if character == ')' {
+                             brackets_stack.pop();
+                        }
+                    }
+
+                    while !brackets_stack.is_empty() {
+                        break; 
+                    }
+
+                    fs_handling::create_non_empty_file(&file_to_write_path, &text_to_write);
+
                 } else if regex_validation::is_documentation_specifier(&current_trimmed_line) {
                     found_documentation_config = true; 
-                } else if regex_validation::is_comment(&current_trimmed_line) {
+                } else if regex_validation::is_comment(&current_trimmed_line) || current_trimmed_line == "" {
                     current_line.clear();
                     continue;
                 }
@@ -157,6 +196,7 @@ fn main() -> () {
                 }
                 
             },
+           
         }
 
         current_line.clear();
@@ -169,4 +209,5 @@ fn main() -> () {
     } else {
          println!("Folder structure successfully created.");
     }
+
 }

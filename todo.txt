@@ -1,4 +1,23 @@
 # Coisas para fazer para aumentar a funcionalidade, mas que foram temporariamente ignoradas por prioridades
 
-- Conseguir mexer num ficheiro de configuração numa diretoria diferente da diretoria da aplicação (~/.config/lenny/config.txt, por exemplo)
-- 
+- Conseguir mexer num ficheiro de configuração numa diretoria diferente da diretoria da aplicação (~/.config/lenny/config.txt, por exemplo) [FEITO]
+- Disponibilizar opção para, em vez de incluir a configuração no ficheiro config.txt, ter um ficheiro específico para essa configuração. Exemplo:
+lenny -f folder -c cpp -u
+
+Assim, para casos onde a configuração ocupe demasiado espaço, o utilizador pode colocá-la num ficheiro [config_name].txt em vez de estar no config.txt 
+
+- Conseguir criar um subcomando "check" para que o utilizador possa ver rapidamente se há erros nos ficheiros de configuração sem correr a aplicação toda
+lenny check
+
+- Adicionar no ficheiro de configuração opção para definir a localização de um novo ficheiro de configuração?????
+
+- Adicionar defaults de configuração para diferentes compiladores. Por exemplo:
+SetCompiler(g++)
+
+Sabendo que é g++ criamos um makefile pré-configurado com pré-opções de compilação
+
+- Antes de criar uma diretoria tenho que ver se existe ou não... caso contrário vai dar muita porcaria se o utilizador se enganar por exemplo sem querer a especificar o nome da pasta
+
+- Modificar as funções dos ficheiros para usarem path em vez de strings para possível melhor compatiblidade com outros sistemas operativos.
+
+- Na parte de dar append à string que no fim vamos escrever no ficheiro, talvez seja melhor só dar push a um carater se eu souber que existem parênteses fechados na string. Caso contrário, posso colocar a string toda logo na string. Fazendo assim, acho que tenho que, em cada linha, acrescentar um caratér de newline cada vez que passar uma linha.
