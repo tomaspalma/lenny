@@ -66,7 +66,16 @@ fn main() -> () {
         }
     }
 
-    // See if the configuration file directory is already created
+    // See if the project name file directory is already created, so we can catch errors that could
+    // override a directory already created in the user' s system that was not supposed to because
+    // of a spelling mistake of the user, for example. However, they could have been creating a
+    // folder with lenny but they had an error with the config file. After they fixed it, they run
+    // lenny with the same folder name, they can delete it still but if they run lenny with that
+    // folder name again we should ask what they want to do. If they want to override the folder,
+    // or do nothing, eliminate that folder and then run lenny with that name or run lenny with
+    // another name ,for example
+    //
+
     fs_handling::create_folder(&config_file_full_dir);
     config_file_full_dir.push_str(&"config.txt");
     
@@ -86,10 +95,38 @@ fn main() -> () {
         println!("No configuration file was detected, so we created a new one in {}.\nHowever, the file is empty and so you have to write your configurations. In the meantime, the program cannot execute because it does not know what to do.", config_file_full_dir); 
         return;
     }
+    
+    // See if the project name file directory is already created, so we can catch errors that could
+    // override a directory already created in the user' s system that was not supposed to because
+    // of a spelling mistake of the user, for example. However, they could have been creating a
+    // folder with lenny but they had an error with the config file. After they fixed it, they run
+    // lenny with the same folder name, they can delete it still but if they run lenny with that
+    // folder name again we should ask what they want to do. If they want to override the folder,
+    // or do nothing, eliminate that folder and then run lenny with that name or run lenny with
+    // another name ,for example
+    
+    if Path::new(&current_user_args.project_name).is_dir() {
+        println!("A folder with the name of your project name: {} already exists. Select the option you want to do:", &current_user_args.project_name);
+        println!("1. Override folder and write to it anyway");
+        println!("2. Deal with it manually either by deleting the folder or even changing the project name argument while calling lenny for example");
 
-    // Create main folder
-    fs_handling::create_folder(&current_user_args.project_name);
-      
+        let mut option: String = String::new();
+        while option != "1" && option != "2" {
+            option.clear();
+            std::io::stdin().read_line(&mut option).expect("Invalid input!");
+            option = option.trim().to_string(); 
+        }
+
+        if option == "1" {
+            fs_handling::create_folder(&current_user_args.project_name);
+        } else {
+            return;
+        }
+    } else {
+        //Create folder
+        fs_handling::create_folder(&current_user_args.project_name);
+    }
+
     // Start reading the configuration file 
     let mut line_reader: BufReader<File> = BufReader::new(config_file_handler);
     let mut current_line: String = String::new();
