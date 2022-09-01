@@ -53,7 +53,7 @@ enum ConfigParserState {
 
 fn main() -> () {
     
-    let available_commands: Vec<&str> = vec!["CreateEmptyFiles", "CreateFolders", "CreateNonEmptyFiles"];
+    let available_commands: Vec<&str> = vec!["CreateEmptyFiles", "CreateFolders", "CreateNonEmptyFile"];
     let (create_files_command_len, create_folders_command_len, write_to_file_command_len) : (usize, usize, usize) = (available_commands[0].len(), available_commands[1].len(), available_commands[2].len());
 
     let mut config_file_full_dir: String = String::new();
