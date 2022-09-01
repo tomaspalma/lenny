@@ -16,8 +16,10 @@ SetCompiler(g++)
 
 Sabendo que é g++ criamos um makefile pré-configurado com pré-opções de compilação
 
-- Antes de criar uma diretoria tenho que ver se existe ou não... caso contrário vai dar muita porcaria se o utilizador se enganar por exemplo sem querer a especificar o nome da pasta
+[FEITO] - Antes de criar uma diretoria tenho que ver se existe ou não... caso contrário vai dar muita porcaria se o utilizador se enganar por exemplo sem querer a especificar o nome da pasta
 
 - Modificar as funções dos ficheiros para usarem path em vez de strings para possível melhor compatiblidade com outros sistemas operativos.
 
 - Na parte de dar append à string que no fim vamos escrever no ficheiro, talvez seja melhor só dar push a um carater se eu souber que existem parênteses fechados na string. Caso contrário, posso colocar a string toda logo na string. Fazendo assim, acho que tenho que, em cada linha, acrescentar um caratér de newline cada vez que passar uma linha.
+
+- Atualizar regexes para conseguirem apanhar mais casos

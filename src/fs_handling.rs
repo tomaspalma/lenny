@@ -19,9 +19,7 @@ pub fn config_file_opener(file: &str) -> (File, bool) {
 
 pub fn create_folder(folder_path: &String) -> () { 
     //println!("Creating directory { } ...", folder_path);
-    std::fs::create_dir_all(folder_path).unwrap_or_else(|error| {
-        println!("Couldn't create directory: {}", error); 
-    });     
+    std::fs::create_dir_all(folder_path).unwrap();
 }
 
 pub fn create_empty_file(file_path: &String) -> () {

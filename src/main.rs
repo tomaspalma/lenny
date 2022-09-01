@@ -1,4 +1,4 @@
-mod regex_validation;
+mod strings_validation;
 mod fs_handling;
 
 use clap::Parser;
@@ -25,17 +25,23 @@ struct UserCLIArgsFormat {
     #[clap(short='d', long="docs", action = clap::ArgAction::SetTrue)]
     generate_documentation: bool,
     
+    /// Activate search in [config_name].txt instead of config.txt
+    #[clap(short='a', long="--alternativecfg", action = clap::ArgAction::SetTrue)]
+    alternative_cfg: bool,
+
     /// Name of the config title in the config file
     #[clap(short='c', long="config", value_parser)]
     config_name: String,
     
     /// Name of the main folder of the project
-    #[clap(short='f', long="mainfoldername", value_parser)]
+    #[clap(short='n', long="name", value_parser)]
     project_name: String,
     
     /// Links with already created repository
     #[clap(short='g', long="git", value_parser)]
-    git_repository_link: Option<String>
+    git_repository_link: Option<String>,
+
+
 }
 
 #[derive(Debug)]
@@ -43,6 +49,7 @@ enum ConfigParserState {
     SearchingForConfigBlock,
     ParsingConfigFuncs,
 }
+
 
 fn main() -> () {
     
@@ -102,14 +109,14 @@ fn main() -> () {
         match parser_config_state {
 
             ConfigParserState::SearchingForConfigBlock => {
-                if regex_validation::is_config_name(&current_line) && &current_line[1..current_user_args.config_name.len() + 1] == current_user_args.config_name {
+                if strings_validation::is_config_name(&current_line) && &current_line[1..current_user_args.config_name.len() + 1] == current_user_args.config_name {
                     parser_config_state = ConfigParserState::ParsingConfigFuncs; 
                 }
             },
 
             ConfigParserState::ParsingConfigFuncs => {
                 
-                if regex_validation::is_create_folder_line(&current_trimmed_line) {
+                if strings_validation::is_create_folder_line(&current_trimmed_line) {
 
                     let part_of_create_folder_command_args: &str = &current_trimmed_line[create_folders_command_len+1..];
                     let args: Vec<&str> = part_of_create_folder_command_args.split(",").collect(); let args_len = args.len();
@@ -129,7 +136,7 @@ fn main() -> () {
                         global_folder_parent = current_user_args.project_name.clone();
                     }
 
-                } else if regex_validation::is_create_empty_file_line(&current_trimmed_line) {
+                } else if strings_validation::is_create_empty_file_line(&current_trimmed_line) {
 
                     let part_of_create_file_args: &str = &current_trimmed_line[create_files_command_len+1..];
                     let args: Vec<&str> = part_of_create_file_args.split(",").collect(); let args_len = args.len();
@@ -149,25 +156,20 @@ fn main() -> () {
                         global_folder_parent = current_user_args.project_name.clone();
                     }
 
-                } else if regex_validation::is_write_to_file_line(&current_trimmed_line) {
+                } else if strings_validation::is_write_to_file_line(&current_trimmed_line) {
                     let part_of_write_to_file_args: &str = &current_trimmed_line[write_to_file_command_len+1..]; 
                     let mut brackets_stack: Vec<char> = vec!['('];
 
                     let first_line_args: Vec<&str> = part_of_write_to_file_args.splitn(2, ",").collect();
                     let (file_to_write_path, first_part_of_text) : (String, &str) = (format!("{}/{}",current_user_args.project_name, first_line_args.get(0).unwrap().to_string()), first_line_args.get(1).unwrap());
                   
-                    let mut text_to_write: String = String::new();
+                    let mut text_to_write_holder: String = String::new();
                     
-                    // Verify if the file exists
-                    /*if !file_to_write_path.exists() {
-                         println!("The file you specified in line {} does not exist. Nothing below that line was executed.", current_line_number);
-                         return;
-                    }*/
-
                     // Firstly, we write to the string we're going to write to the file the chars
                     // from the first line of the config.txt arg 
+                    // check_create_file_lines(&current_line, &mut brackers_stack, &mut String text_to_write_holder);
                     for character in first_part_of_text.chars() {
-                        text_to_write.push(character);
+                        text_to_write_holder.push(character);
                         if character == '(' {
                              brackets_stack.push(character);
                         } else if character == ')' {
@@ -191,7 +193,7 @@ fn main() -> () {
                             }
                             
                             if !brackets_stack.is_empty() {
-                                 text_to_write.push(character);
+                                 text_to_write_holder.push(character);
                             }
                         }
                         
@@ -199,16 +201,16 @@ fn main() -> () {
                     }
                     
                     // Removing the last ) of the command arg
-                    text_to_write.pop();
-                    fs_handling::create_non_empty_file(&file_to_write_path, &text_to_write);
+                    text_to_write_holder.pop();
+                    fs_handling::create_non_empty_file(&file_to_write_path, &text_to_write_holder);
 
-                } else if regex_validation::is_documentation_specifier(&current_trimmed_line) {
+                } else if strings_validation::is_documentation_specifier(&current_trimmed_line) {
                     found_documentation_config = true; 
-                } else if regex_validation::is_comment(&current_trimmed_line) || current_trimmed_line == "" {
+                } else if strings_validation::is_comment(&current_trimmed_line) || current_trimmed_line == "" {
                     current_line.clear();
                     continue;
                 }
-                else if regex_validation::is_config_name(&current_trimmed_line) {
+                else if strings_validation::is_config_name(&current_trimmed_line) {
                      break;
                 } else {
                     // Try to tell the user specifically where the error is at
