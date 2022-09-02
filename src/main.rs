@@ -2,7 +2,7 @@ mod fs_handling;
 mod strings_validation;
 
 use clap::Parser;
-use std::fs::File;
+use std::fs::{create_dir_all, File};
 use std::io::BufRead;
 use std::io::BufReader;
 use std::path::PathBuf;
@@ -42,6 +42,13 @@ enum ConfigParserState {
     ParsingConfigFuncs,
 }
 
+#[derive(Debug)]
+enum ConfigFunctions {
+    CreateEmptyFiles(PathBuf),
+    CreateFolder(PathBuf),
+    CreateNonEmptyFile(PathBuf, String),
+}
+
 fn main() -> () {
     let current_user_args = UserCLIArgsFormat::parse();
 
@@ -75,14 +82,21 @@ fn main() -> () {
                     config_file_full_dir.push("config");
                 }
             }
-            None => panic!("Environment variable $HOME is not set. Please set it correctly."),
+            None => {
+                println!("Environment variable $HOME is not set. Please set it correctly.");
+                return;
+            }
         }
     }
 
     config_file_full_dir.set_extension("txt");
-    //fs_handling::create_folder(&config_file_full_dir);
     if !config_file_full_dir.is_file() {
-        std::fs::create_dir_all(&config_file_full_dir).unwrap();
+        File::create(&config_file_full_dir).unwrap();
+        println!(
+            "There was no configuration file available, so we created one at {}. Since no config file was created, it's empty and there's nothing to parse. Please write to the config file",
+            config_file_full_dir.display()
+        );
+        return;
     }
 
     let config_file_handler = fs_handling::open_file(&config_file_full_dir);
@@ -104,8 +118,6 @@ fn main() -> () {
     // or do nothing, eliminate that folder and then run lenny with that name or run lenny with
     // another name ,for example
 
-    fs_handling::create_folder(&current_user_args.project_name);
-
     // Start reading the configuration file
     let mut line_reader: BufReader<File> = BufReader::new(config_file_handler);
     let mut current_line: String = String::new();
@@ -123,6 +135,13 @@ fn main() -> () {
 
     let mut global_folder_parent: PathBuf = current_user_args.project_name.clone();
 
+    let mut commands_to_execute_queue: Vec<ConfigFunctions> = Vec::new();
+
+    if PathBuf::from(&current_user_args.project_name).is_dir() {
+        println!("{} with the same name of your project folder name already exists. Either change the name of the project while calling Lenny or remove the current folder with that name. Exiting program.", current_user_args.project_name.display());
+    }
+
+    // Parse config file
     while line_reader.read_line(&mut current_line).unwrap() != 0 {
         current_line_number += 1;
         let current_trimmed_line: &str = current_line.trim();
@@ -156,7 +175,9 @@ fn main() -> () {
                         }
 
                         global_folder_parent.push(trimmed_folder_args);
-                        fs_handling::create_folder(&global_folder_parent);
+                        //fs_handling::create_folder(&global_folder_parent);
+                        commands_to_execute_queue
+                            .push(ConfigFunctions::CreateFolder(global_folder_parent));
 
                         global_folder_parent = current_user_args.project_name.clone();
                     }
@@ -177,7 +198,9 @@ fn main() -> () {
                         }
 
                         global_folder_parent.push(trimmed_file_args);
-                        fs_handling::create_empty_file(&global_folder_parent);
+                        //fs_handling::create_empty_file(&global_folder_parent);
+                        commands_to_execute_queue
+                            .push(ConfigFunctions::CreateEmptyFiles(global_folder_parent));
 
                         global_folder_parent = current_user_args.project_name.clone();
                     }
@@ -232,10 +255,14 @@ fn main() -> () {
 
                     // Removing the last ) of the command arg
                     text_to_write_holder.pop();
-                    fs_handling::create_non_empty_file(
+                    /* fs_handling::create_non_empty_file(
                         &global_folder_parent,
                         &text_to_write_holder,
-                    );
+                    );*/
+                    commands_to_execute_queue.push(ConfigFunctions::CreateNonEmptyFile(
+                        global_folder_parent,
+                        text_to_write_holder,
+                    ));
                     global_folder_parent = current_user_args.project_name.clone();
                 } else if strings_validation::is_documentation_specifier(&current_trimmed_line) {
                     found_documentation_config = true;
@@ -257,11 +284,28 @@ fn main() -> () {
         current_line.clear();
     }
 
+    // Check for errors and see if there' s a valid config queue of commands to execute
     if let ConfigParserState::SearchingForConfigBlock = parser_config_state {
         println!("The configuration name you specified in the program parameters was not found in the file. Please, check for spelling mistakes or other mistakes.");
     } else if current_user_args.generate_documentation && !found_documentation_config {
         println!("In the program parameters you specified you wanted to use a programming documentation engine. However, in the configuration file in the block of the config you specified, there is no definition of the documentation engine. Add this to the config file: Documentation([name_of_the_engine])");
     } else {
-        println!("Folder structure successfully created.");
+        create_dir_all(&current_user_args.project_name).unwrap();
+
+        for command in commands_to_execute_queue.iter() {
+            match command {
+                ConfigFunctions::CreateFolder(folder_path) => {
+                    create_dir_all(&folder_path).unwrap();
+                }
+                ConfigFunctions::CreateEmptyFiles(file_path) => {
+                    create_dir_all(&file_path).unwrap();
+                }
+                ConfigFunctions::CreateNonEmptyFile(file_path, text_to_write) => {
+                    fs_handling::create_non_empty_file(&file_path, &text_to_write)
+                }
+            }
+        }
+
+        println!("Folder structure created with success.");
     }
 }
