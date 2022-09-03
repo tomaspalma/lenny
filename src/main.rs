@@ -3,8 +3,8 @@ mod strings_validation;
 
 use clap::Parser;
 use std::fs::{create_dir_all, File};
-use std::io::BufRead;
 use std::io::BufReader;
+use std::io::{stdin, BufRead};
 use std::path::PathBuf;
 
 #[cfg(target_family = "unix")]
@@ -144,7 +144,20 @@ fn main() -> () {
     let mut commands_to_execute_queue: Vec<ConfigFunctions> = Vec::new();
 
     if PathBuf::from(&current_user_args.project_name).is_dir() {
-        println!("{} with the same name of your project folder name already exists. Either change the name of the project while calling Lenny or remove the current folder with that name. Exiting program.", current_user_args.project_name.display());
+        println!("There's already a folder with the project name created in the current directory. Choose one of the options to proceed:");
+        println!("1. Override already created directory");
+        println!("2. Manually solve the problem, either by changing the project name argument when calling the program or deleting the already existing folder");
+
+        let mut option: String = String::new();
+        let input_reader = stdin();
+        while option != "1" && option != "2" {
+            input_reader.read_line(&mut option).unwrap();
+            option = option.trim().to_string();
+        }
+
+        if option == "2" {
+            return;
+        }
     }
 
     // Parse config file
@@ -204,7 +217,7 @@ fn main() -> () {
                         }
 
                         global_folder_parent.push(trimmed_file_args);
-                        //fs_handling::create_empty_file(&global_folder_parent);
+                        println!("{}", global_folder_parent.parent().unwrap().display());
                         commands_to_execute_queue
                             .push(ConfigFunctions::CreateEmptyFiles(global_folder_parent));
 
@@ -261,10 +274,6 @@ fn main() -> () {
 
                     // Removing the last ) of the command arg
                     text_to_write_holder.pop();
-                    /* fs_handling::create_non_empty_file(
-                        &global_folder_parent,
-                        &text_to_write_holder,
-                    );*/
                     commands_to_execute_queue.push(ConfigFunctions::CreateNonEmptyFile(
                         global_folder_parent,
                         text_to_write_holder,
