@@ -1,33 +1,22 @@
-use std::{fs::File, io::Write};
+use std::fs::{create_dir, create_dir_all, File};
+use std::io::Write;
+use std::path::PathBuf;
 
-pub fn config_file_opener(file: &str) -> (File, bool) {
-    let mut created_config_file = false;
-    
-    let file_handler = File::open(file).unwrap_or_else(|error| {
+pub fn open_file(file_path: &PathBuf) -> File {
+    let file_handler = File::open(file_path).unwrap_or_else(|error| {
         if error.kind() == std::io::ErrorKind::NotFound {
-            let file_creation_handler = File::create(file).unwrap();
+            let file_creation_handler = File::create(file_path).unwrap();
 
-            created_config_file = true;
             file_creation_handler
         } else {
             panic!("Error opening file: { }", error);
         }
     });
 
-    (file_handler, created_config_file)
+    file_handler
 }
 
-pub fn create_folder(folder_path: &String) -> () { 
-    //println!("Creating directory { } ...", folder_path);
-    std::fs::create_dir_all(folder_path).unwrap();
-}
-
-pub fn create_empty_file(file_path: &String) -> () {
-    //println!("Creating file { } ...", file_path); 
-    File::create(file_path).unwrap();
-}
-
-pub fn create_non_empty_file(file_path: &String, text_to_write: &String) -> () {
-    let mut file_handler: File = File::create(file_path).unwrap(); 
+pub fn create_non_empty_file(file_path: &PathBuf, text_to_write: &String) -> () {
+    let mut file_handler: File = File::create(file_path).unwrap();
     file_handler.write_all(text_to_write.as_bytes()).unwrap();
 }

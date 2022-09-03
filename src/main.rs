@@ -2,12 +2,10 @@ mod fs_handling;
 mod strings_validation;
 
 use clap::Parser;
-use std::fs::File;
-use std::io::BufRead;
+use std::fs::{create_dir_all, File};
 use std::io::BufReader;
-use std::path::Path;
-
-const CONFIG_FILE_NAME: &str = "lenny/";
+use std::io::{stdin, BufRead};
+use std::path::PathBuf;
 
 #[cfg(target_family = "unix")]
 fn initialize_git() -> () {}
@@ -17,11 +15,11 @@ fn initialize_git() -> () {}
 
 #[derive(Parser, Debug)]
 struct UserCLIArgsFormat {
-    /// Generate documentation configuration files
+    /// (OPTIONAL) Generate documentation configuration files
     #[clap(short='d', long="docs", action = clap::ArgAction::SetTrue)]
     generate_documentation: bool,
 
-    /// Activate search in [config_name].txt instead of config.txt
+    /// (OPTIONAL) Activate search in [config_name].txt instead of config.txt
     #[clap(short='a', long="--alternativecfg", action = clap::ArgAction::SetTrue)]
     alternative_cfg: bool,
 
@@ -31,9 +29,9 @@ struct UserCLIArgsFormat {
 
     /// Name of the main folder of the project
     #[clap(short = 'n', long = "name", value_parser)]
-    project_name: String,
+    project_name: PathBuf,
 
-    /// Links with already created repository
+    /// (OPTIONAL) Links with already created repository
     #[clap(short = 'g', long = "git", value_parser)]
     git_repository_link: Option<String>,
 }
@@ -42,6 +40,13 @@ struct UserCLIArgsFormat {
 enum ConfigParserState {
     SearchingForConfigBlock,
     ParsingConfigFuncs,
+}
+
+#[derive(Debug)]
+enum ConfigFunctions {
+    CreateEmptyFiles(PathBuf),
+    CreateFolder(PathBuf),
+    CreateNonEmptyFile(PathBuf, String),
 }
 
 fn main() -> () {
@@ -62,45 +67,53 @@ fn main() -> () {
         available_commands[2].len(),
     );
 
-    let mut config_file_full_dir: String = String::new();
+    let (mut config_folder_path, mut config_file_path): (PathBuf, PathBuf) =
+        (PathBuf::new(), PathBuf::new());
 
     // Define parent home directory in config file location
     if cfg!(unix) {
         match std::env::var_os("HOME") {
             Some(value) => {
-                if current_user_args.alternative_cfg {
-                    config_file_full_dir = format!(
-                        "{}{}{}",
-                        value.into_string().unwrap(),
-                        String::from("/.config/"),
-                        format!("{}{}", current_user_args.config_name, ".txt")
-                    );
-                } else {
-                    config_file_full_dir = format!(
-                        "{}{}{}",
-                        value.into_string().unwrap(),
-                        String::from("/.config/"),
-                        CONFIG_FILE_NAME
-                    );
-                }
+                config_folder_path.push(&value);
+                config_folder_path.push(".config");
+                config_folder_path.push("lenny");
             }
-            None => panic!("Environment variable $HOME is not set. Please set it correctly."),
+            None => {
+                println!("Environment variable $HOME is not set. Please set it correctly.");
+                return;
+            }
         }
     }
 
-    fs_handling::create_folder(&config_file_full_dir);
-    config_file_full_dir.push_str(&"config.txt");
+    config_file_path.push(&config_folder_path);
+    if current_user_args.alternative_cfg {
+        config_file_path.push(&current_user_args.project_name);
+    } else {
+        config_file_path.push("config");
+    }
+    config_file_path.set_extension("txt");
 
-    let (config_file_handler, created_config_file): (File, bool) =
-        fs_handling::config_file_opener(&config_file_full_dir);
+    if !&config_file_path.is_file() {
+        if !&config_folder_path.is_dir() {
+            create_dir_all(&config_folder_path).unwrap();
+        }
+        File::create(&config_file_path).unwrap();
+        println!(
+            "There was no configuration file available, so we created one at {}. Since no config file was created, it's empty and there's nothing to parse. Please write to the config file",
+            config_folder_path.display()
+        );
+        return;
+    }
+
+    let config_file_handler = fs_handling::open_file(&config_file_path);
 
     // Check if the program had to create the confuration file that should be there
     // NOTE: In the future, the program should create the default configuration file and not just
     // an empty one
-    if created_config_file {
-        println!("No configuration file was detected, so we created a new one in {}.\nHowever, the file is empty and so you have to write your configurations. In the meantime, the program cannot execute because it does not know what to do.", config_file_full_dir);
+    /*if created_config_file {
+        println!("No configuration file was detected, so we created a new one in {}.\nHowever, the file is empty and so you have to write your configurations. In the meantime, the program cannot execute because it does not know what to do.", config_file_full_dir.display());
         return;
-    }
+    } */
 
     // See if the project name file directory is already created, so we can catch errors that could
     // override a directory already created in the user' s system that was not supposed to because
@@ -110,30 +123,6 @@ fn main() -> () {
     // folder name again we should ask what they want to do. If they want to override the folder,
     // or do nothing, eliminate that folder and then run lenny with that name or run lenny with
     // another name ,for example
-
-    if Path::new(&current_user_args.project_name).is_dir() {
-        println!("A folder with the name of your project name: {} already exists. Select the option you want to do:", &current_user_args.project_name);
-        println!("1. Override folder and write to it anyway");
-        println!("2. Deal with it manually either by deleting the folder or even changing the project name argument while calling lenny for example");
-
-        let mut option: String = String::new();
-        while option != "1" && option != "2" {
-            option.clear();
-            std::io::stdin()
-                .read_line(&mut option)
-                .expect("Invalid input!");
-            option = option.trim().to_string();
-        }
-
-        if option == "1" {
-            fs_handling::create_folder(&current_user_args.project_name);
-        } else {
-            return;
-        }
-    } else {
-        //Create folder
-        fs_handling::create_folder(&current_user_args.project_name);
-    }
 
     // Start reading the configuration file
     let mut line_reader: BufReader<File> = BufReader::new(config_file_handler);
@@ -150,8 +139,28 @@ fn main() -> () {
     let mut found_documentation_config: bool = false;
     let mut current_line_number: i32 = 0;
 
-    let mut global_folder_parent: String = current_user_args.project_name.clone();
+    let mut global_folder_parent: PathBuf = current_user_args.project_name.clone();
 
+    let mut commands_to_execute_queue: Vec<ConfigFunctions> = Vec::new();
+
+    if PathBuf::from(&current_user_args.project_name).is_dir() {
+        println!("There's already a folder with the project name created in the current directory. Choose one of the options to proceed:");
+        println!("1. Override already created directory");
+        println!("2. Manually solve the problem, either by changing the project name argument when calling the program or deleting the already existing folder");
+
+        let mut option: String = String::new();
+        let input_reader = stdin();
+        while option != "1" && option != "2" {
+            input_reader.read_line(&mut option).unwrap();
+            option = option.trim().to_string();
+        }
+
+        if option == "2" {
+            return;
+        }
+    }
+
+    // Parse config file
     while line_reader.read_line(&mut current_line).unwrap() != 0 {
         current_line_number += 1;
         let current_trimmed_line: &str = current_line.trim();
@@ -184,9 +193,10 @@ fn main() -> () {
                                 &trimmed_folder_args[..trimmed_folder_args.len() - 1];
                         }
 
-                        global_folder_parent.push('/');
-                        global_folder_parent.push_str(trimmed_folder_args);
-                        fs_handling::create_folder(&global_folder_parent);
+                        global_folder_parent.push(trimmed_folder_args);
+                        //fs_handling::create_folder(&global_folder_parent);
+                        commands_to_execute_queue
+                            .push(ConfigFunctions::CreateFolder(global_folder_parent));
 
                         global_folder_parent = current_user_args.project_name.clone();
                     }
@@ -206,9 +216,9 @@ fn main() -> () {
                             trimmed_file_args = &trimmed_file_args[..trimmed_file_args.len() - 1];
                         }
 
-                        global_folder_parent.push('/');
-                        global_folder_parent.push_str(trimmed_file_args);
-                        fs_handling::create_empty_file(&global_folder_parent);
+                        global_folder_parent.push(trimmed_file_args);
+                        commands_to_execute_queue
+                            .push(ConfigFunctions::CreateEmptyFiles(global_folder_parent));
 
                         global_folder_parent = current_user_args.project_name.clone();
                     }
@@ -219,14 +229,10 @@ fn main() -> () {
 
                     let first_line_args: Vec<&str> =
                         part_of_write_to_file_args.splitn(2, ",").collect();
-                    let (file_to_write_path, first_part_of_text): (String, &str) = (
-                        format!(
-                            "{}/{}",
-                            current_user_args.project_name,
-                            first_line_args.get(0).unwrap().to_string()
-                        ),
-                        first_line_args.get(1).unwrap(),
-                    );
+
+                    global_folder_parent.push(first_line_args.get(0).unwrap().to_string());
+
+                    let first_part_of_text: &str = first_line_args.get(1).unwrap();
 
                     let mut text_to_write_holder: String = String::new();
 
@@ -265,9 +271,11 @@ fn main() -> () {
                         current_line.clear();
                     }
 
-                    // Removing the last ) of the command arg
-                    text_to_write_holder.pop();
-                    fs_handling::create_non_empty_file(&file_to_write_path, &text_to_write_holder);
+                    commands_to_execute_queue.push(ConfigFunctions::CreateNonEmptyFile(
+                        global_folder_parent,
+                        text_to_write_holder,
+                    ));
+                    global_folder_parent = current_user_args.project_name.clone();
                 } else if strings_validation::is_documentation_specifier(&current_trimmed_line) {
                     found_documentation_config = true;
                 } else if strings_validation::is_comment(&current_trimmed_line)
@@ -279,7 +287,7 @@ fn main() -> () {
                     break;
                 } else {
                     // Try to tell the user specifically where the error is at
-                    println!("You have a problem in line {} with content: {} in the configuration file located at {}", current_line_number, current_line, config_file_full_dir);
+                    println!("You have a problem in line {} with content: {} in the configuration file located at {}", current_line_number, current_line, config_folder_path.display());
                     return;
                 }
             }
@@ -288,11 +296,28 @@ fn main() -> () {
         current_line.clear();
     }
 
+    // Check for errors and see if there' s a valid config queue of commands to execute
     if let ConfigParserState::SearchingForConfigBlock = parser_config_state {
         println!("The configuration name you specified in the program parameters was not found in the file. Please, check for spelling mistakes or other mistakes.");
     } else if current_user_args.generate_documentation && !found_documentation_config {
         println!("In the program parameters you specified you wanted to use a programming documentation engine. However, in the configuration file in the block of the config you specified, there is no definition of the documentation engine. Add this to the config file: Documentation([name_of_the_engine])");
     } else {
-        println!("Folder structure successfully created.");
+        create_dir_all(&current_user_args.project_name).unwrap();
+
+        for command in commands_to_execute_queue.iter() {
+            match command {
+                ConfigFunctions::CreateFolder(folder_path) => {
+                    create_dir_all(&folder_path).unwrap();
+                }
+                ConfigFunctions::CreateEmptyFiles(file_path) => {
+                    File::create(&file_path).unwrap();
+                }
+                ConfigFunctions::CreateNonEmptyFile(file_path, text_to_write) => {
+                    fs_handling::create_non_empty_file(&file_path, &text_to_write)
+                }
+            }
+        }
+
+        println!("Folder structure created with success.");
     }
 }
