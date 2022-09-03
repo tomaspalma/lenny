@@ -16,11 +16,6 @@ pub fn open_file(file_path: &PathBuf) -> File {
     file_handler
 }
 
-pub fn create_empty_file(file_path: &PathBuf) -> () {
-    //println!("Creating file { } ...", file_path);
-    File::create(file_path).unwrap();
-}
-
 pub fn create_non_empty_file(file_path: &PathBuf, text_to_write: &String) -> () {
     let mut file_handler: File = File::create(file_path).unwrap();
     file_handler.write_all(text_to_write.as_bytes()).unwrap();

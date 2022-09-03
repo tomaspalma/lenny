@@ -67,20 +67,16 @@ fn main() -> () {
         available_commands[2].len(),
     );
 
-    let mut config_file_full_dir: PathBuf = PathBuf::new();
+    let (mut config_folder_path, mut config_file_path): (PathBuf, PathBuf) =
+        (PathBuf::new(), PathBuf::new());
 
     // Define parent home directory in config file location
     if cfg!(unix) {
         match std::env::var_os("HOME") {
             Some(value) => {
-                config_file_full_dir.push(&value);
-                config_file_full_dir.push(".config");
-                if current_user_args.alternative_cfg {
-                    config_file_full_dir.push(&current_user_args.project_name);
-                } else {
-                    config_file_full_dir.push("lenny");
-                    config_file_full_dir.push("config");
-                }
+                config_folder_path.push(&value);
+                config_folder_path.push(".config");
+                config_folder_path.push("lenny");
             }
             None => {
                 println!("Environment variable $HOME is not set. Please set it correctly.");
@@ -89,17 +85,27 @@ fn main() -> () {
         }
     }
 
-    config_file_full_dir.set_extension("txt");
-    if !config_file_full_dir.is_file() {
-        File::create(&config_file_full_dir).unwrap();
+    config_file_path.push(&config_folder_path);
+    if current_user_args.alternative_cfg {
+        config_file_path.push(&current_user_args.project_name);
+    } else {
+        config_file_path.push("config");
+    }
+    config_file_path.set_extension("txt");
+
+    if !&config_file_path.is_file() {
+        if !&config_folder_path.is_dir() {
+            create_dir_all(&config_folder_path).unwrap();
+        }
+        File::create(&config_file_path).unwrap();
         println!(
             "There was no configuration file available, so we created one at {}. Since no config file was created, it's empty and there's nothing to parse. Please write to the config file",
-            config_file_full_dir.display()
+            config_folder_path.display()
         );
         return;
     }
 
-    let config_file_handler = fs_handling::open_file(&config_file_full_dir);
+    let config_file_handler = fs_handling::open_file(&config_file_path);
 
     // Check if the program had to create the confuration file that should be there
     // NOTE: In the future, the program should create the default configuration file and not just
@@ -275,7 +281,7 @@ fn main() -> () {
                     break;
                 } else {
                     // Try to tell the user specifically where the error is at
-                    println!("You have a problem in line {} with content: {} in the configuration file located at {}", current_line_number, current_line, config_file_full_dir.display());
+                    println!("You have a problem in line {} with content: {} in the configuration file located at {}", current_line_number, current_line, config_folder_path.display());
                     return;
                 }
             }
@@ -298,7 +304,7 @@ fn main() -> () {
                     create_dir_all(&folder_path).unwrap();
                 }
                 ConfigFunctions::CreateEmptyFiles(file_path) => {
-                    create_dir_all(&file_path).unwrap();
+                    File::create(&file_path).unwrap();
                 }
                 ConfigFunctions::CreateNonEmptyFile(file_path, text_to_write) => {
                     fs_handling::create_non_empty_file(&file_path, &text_to_write)
