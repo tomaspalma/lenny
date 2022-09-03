@@ -1,0 +1,12 @@
+[cpp]
+CreateFolders(include, src, docs, tests)
+CreateEmptyFiles(todo.txt)
+CreateNonEmptyFile(src/main.cpp, 
+#include <iostream>
+
+int main(void) {
+	return EXIT_SUCCESS;
+})
+CreateNonEmptyFile(.gitignore, 
+.ccls-cache
+.gitignore)

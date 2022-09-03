@@ -15,11 +15,11 @@ fn initialize_git() -> () {}
 
 #[derive(Parser, Debug)]
 struct UserCLIArgsFormat {
-    /// Generate documentation configuration files
+    /// (OPTIONAL) Generate documentation configuration files
     #[clap(short='d', long="docs", action = clap::ArgAction::SetTrue)]
     generate_documentation: bool,
 
-    /// Activate search in [config_name].txt instead of config.txt
+    /// (OPTIONAL) Activate search in [config_name].txt instead of config.txt
     #[clap(short='a', long="--alternativecfg", action = clap::ArgAction::SetTrue)]
     alternative_cfg: bool,
 
@@ -31,7 +31,7 @@ struct UserCLIArgsFormat {
     #[clap(short = 'n', long = "name", value_parser)]
     project_name: PathBuf,
 
-    /// Links with already created repository
+    /// (OPTIONAL) Links with already created repository
     #[clap(short = 'g', long = "git", value_parser)]
     git_repository_link: Option<String>,
 }
@@ -217,7 +217,6 @@ fn main() -> () {
                         }
 
                         global_folder_parent.push(trimmed_file_args);
-                        println!("{}", global_folder_parent.parent().unwrap().display());
                         commands_to_execute_queue
                             .push(ConfigFunctions::CreateEmptyFiles(global_folder_parent));
 
@@ -272,8 +271,6 @@ fn main() -> () {
                         current_line.clear();
                     }
 
-                    // Removing the last ) of the command arg
-                    text_to_write_holder.pop();
                     commands_to_execute_queue.push(ConfigFunctions::CreateNonEmptyFile(
                         global_folder_parent,
                         text_to_write_holder,
