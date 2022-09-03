@@ -111,3 +111,4 @@ int main(void) {
 - A command ```lenny check``` so you can get feedback if there are problems with the configuration file without the need of running the program. This will require the tool to become more modular probably.
 - Better error handling instead of just saying that there's an error in a line. The goal is to specify exactly what the problem is. Probably this will require a change in the parsing mechanism.
 - The program will still panic if the user tries to create to a file whose parent folder was not created and a folder of the incomplete project will be created.
+- Still need to implement configuring initilization with git and also, documentation tools
