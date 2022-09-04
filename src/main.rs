@@ -145,7 +145,7 @@ fn main() -> () {
 
     if PathBuf::from(&current_user_args.project_name).is_dir() {
         println!("There's already a folder with the project name created in the current directory. Choose one of the options to proceed:");
-        println!("1. Override already created directory");
+        println!("1. Merge already created directory with new one");
         println!("2. Manually solve the problem, either by changing the project name argument when calling the program or deleting the already existing folder");
 
         let mut option: String = String::new();
